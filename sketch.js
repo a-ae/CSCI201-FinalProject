@@ -1,125 +1,145 @@
-/*
- *
- *
- *
+/* 
+ * Aaron Smith
+ * 12/12/2023
  */
 
-
-
 // constants
-const WINDOW_HEIGHT = 800;
-const WINDOW_LENGTH = 800; // window dimensions
+const WINDOW_LENGTH = 800;
+const WINDOW_HEIGHT = 800; // window dimensions
+const BOX_LENGTH = 100;
+const BOX_HEIGHT = 50; // score box dimensions
 
-// important globals variables
+//important global variables
 var balls = [];
-var numBalls = 1;
+var score = 0;
+var difficulty = 3;
 
+function preload() {
+  // preload sound file if any
+}
+
+// loads canvas
 function setup() {
-  createCanvas(WINDOW_HEIGHT, WINDOW_LENGTH);
+  createCanvas(WINDOW_LENGTH, WINDOW_HEIGHT);
+}
+
+// draws and updates the player's score
+function scoreBox() {
+  strokeWeight(4);
+  rect(0, 0, BOX_LENGTH, BOX_HEIGHT);
   
-  for (var i = 0; i < numBalls; i++) {
-    balls[i] = new Ball();
+  textSize(20);
+  fill(0, 0, 0);
+  
+  textAlign(LEFT);
+  text(score.toString(), 4, BOX_HEIGHT / 2)
+}
+
+// ensures the ball list is always filled to capacity, capacity based on difficulty
+function fillBallList() {
+  while (balls.length < difficulty) {
+    balls.push(new Ball());
   }
 }
 
-function preload() {
-  //preload sound file if any
+// increments difficulty every 5 points
+function updateDifficulty() {
+  if (score % 5 == 0) {
+    difficulty++;
+  }
 }
+
+// check if the cursor is touching a ball
 
 function draw() {
   background(0);
+  scoreBox();
+  fillBallList();
   
   for (var i = 0; i < balls.length; i++) {
     balls[i].display();
-    if (balls[i].checkForOffScreen()) {
+    
+    // replaces balls that leave the window & adds score
+    if (balls[i].outsideWindow()) {
       balls[i] = new Ball();
-      break;
+      score++;
+      updateDifficulty();
     }
-    balls[i].moveBall();
+    
+    // checks if cursor is touching green, and ends game
+    var pixel = get(mouseX, mouseY);
+    if (pixel[1] == 255) {
+      background(0, 0, 0);
+      textSize(60);
+      text('Great Job! Score: '+score, 20, 250);
+      noLoop();
+      return;
+    }
+    
+    balls[i].move();
   }
-
-}
-
-function getMousePos(ball) {
-  
-  var x = event.clientX
-  var y = event.clientY
-  
-  if (x == ball.ballX && y == ball.ballY) {
-    return true
-  }
-  return false
 }
 
 class Ball {
-  
   constructor() {
-    /**
-    this.ballX = random(10, 100)
-    this.ballY = random(10, 100)
+    // determines which edge of the screen to create a ball on
+    var spawnEdge = floor(random(0, 4));
     
-    this.speedY = random(-5, 5)
-    this.speedX = random(-5, 5)
-    
-    this.size = random(100)
-    
-    this.red = random(225)
-    this.blue = random(225)
-    this.green = random(225)
-    */
-    
-    // decides whether ball will spawn at the left, right, top, or bottom of the screen
-    var side = floor(random(0, 4))
-    
-    // assign appropriate speeds based on spawn region so ball doesn't go right back off screen
-    if (side == 0) { // ceiling
-      this.ballX = random(0, WINDOW_LENGTH);
-      this.ballY = 0;
-      this.speedX = random(-10, 10)
-      this.speedY = random(0, 10)
-    }
-      
-    if (side == 1) { // floor
-      this.ballX = random(0, WINDOW_LENGTH)
-      this.ballY = WINDOW_HEIGHT
-      this.speedX = random(-10, 10)
-      this.speedY = random(-10, 0)
-    }
-    
-    if (side == 2) { // left
+    if (spawnEdge == 0) { // spawns on the left
       this.ballX = 0;
       this.ballY = random(0, WINDOW_HEIGHT);
-      this.speedX = random(0, 10)
-      this.speedY = random(-10, 10)
+      this.speedX = random(1, 5);
+      this.speedY = random(-5, 5);
+        
     }
-    
-    else { // right
+    if (spawnEdge == 1) { // spawns on the top
+      this.ballX = random(0, WINDOW_LENGTH);
+      this.ballY = 0;
+      this.speedX = random(-5, 5);
+      this.speedY = random(1, 5);
+      
+    }
+      
+    if (spawnEdge == 2) { // spawns on the right
       this.ballX = WINDOW_LENGTH;
-      this.ballY = random(0, WINDOW_HEIGHT)
-      this.speedX = random(-10, 0);
-      this.speedY = random(-10, 10)
+      this.ballY = random(0, WINDOW_HEIGHT);
+      this.speedX = random(0, -5);
+      this.speedY = random(-5, 5);
+      
+    }
+      
+    else { // spawns on the bottom
+      this.ballX = random(0, WINDOW_LENGTH);
+      this.ballY = WINDOW_HEIGHT;
+      this.speedX = random(-5, 5);
+      this.speedY = random(-5, 0);
+      
     }
     
-    this.size = random(50, 150);
+  
+    this.size = random(10, 100);
     
     this.red = 0;
+    this.green = 255;
     this.blue = 0;
-    this.green = 225;
+    
+    this.alpha = 255;
   }
   
   display() {
-    fill(this.red, this.green, this.blue)
-    ellipse(this.ballX, this.ballY, this.size)
+    fill(this.red, this.green, this.blue, this.alpha);
+    ellipse(this.ballX, this.ballY, this.size);
   }
   
-  checkForOffScreen() {
-    if ((((this.ballX + (this.size / 2)) < 0) || ((this.ballX - (this.size / 2)) > WINDOW_LENGTH)) || (((this.ballY + (this.size / 2)) < 0) || ((this.ballY - (this.size / 2)) > WINDOW_HEIGHT))) {
+  // returns boolean based on if the ball is outside the window
+  outsideWindow() {
+    if (((this.ballX + this.size / 2) < 0 || (this.ballX - this.size / 2) > WINDOW_LENGTH) || ((this.ballY + this.size / 2) < 0) || (this.ballY - this.size / 2) > WINDOW_HEIGHT) {
       return true;
     }
     return false;
   }
   
-  moveBall() {
+  move() {
     this.ballX += this.speedX;
     this.ballY += this.speedY;
   }
